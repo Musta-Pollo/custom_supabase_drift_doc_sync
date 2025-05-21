@@ -1,11 +1,11 @@
 # Custom Drift Synchronization Example
 
 This project showcases two things:
-- Synchronization of one-user data across devices that are stored using Drift DB
-     - Client side: A lot of the boilerplate is achieved through code generation
-     - Server side: A generic code that can be easily reused as it is
-- Synchronization of appflowy editor content across devices with handling of merge conflicts and offline editing using appflowy_editor_sync_plugin.
 
+- Synchronization of one-user data across devices that are stored using Drift DB
+  - Client side: A lot of the boilerplate is achieved through code generation
+  - Server side: A generic code that can be easily reused as it is
+- Synchronization of appflowy editor content across devices with handling of merge conflicts and offline editing using appflowy_editor_sync_plugin.
 
 ## Demo
 
@@ -13,9 +13,7 @@ Example of how this works in the browser. But the same applies for native platfo
 
 Link: https://habitmaster-e52e9.web.app/
 
-
 https://github.com/user-attachments/assets/274e50de-ac70-42b1-9a43-083a8f0db7ac
-
 
 **Notes:**
 The demo is slightly longer because it is a live demonstration and involves turning the Wi-Fi on and off. This same demo functions well on all other Flutter platforms and Wear OS if properly configured.
@@ -23,7 +21,9 @@ The demo is slightly longer because it is a live demonstration and involves turn
 Its mainly designed for native platforms. On the Web there is a problem that if user opens multiple tabs, the database needs to be unique for each tab. Because of that the web initialily syncs all data each time it is opened.
 
 ## The synchronization is achieved by:
+
 ### Client
+
 - Annotation drift cases and providing special variables
 
 ```dart
@@ -39,7 +39,7 @@ class Task extends Table {
   @JsonKey('deleted_at') // 3. Provide timestamp attributes c
   DateTimeColumn get deletedAt => dateTime().nullable()();
   TextColumn get name => text()();
-  
+
 
   // 4. Specify the isRemote attribute
   BoolColumn get isRemote => boolean().withDefault(const Constant(false))();
@@ -55,7 +55,9 @@ class Task extends Table {
 ```
 
 Define `SyncManager`
-- `SyncManager` combines data from annotated classes and generates code that can be used with  `WatermelonDB` styled server DB functions.
+
+- `SyncManager` combines data from annotated classes and generates code that can be used with `WatermelonDB` styled server DB functions.
+
 ```dart
 part 'sync_manager.sync.dart';
 // Specify tables to sync in - IN THE ORDER OF THEIR DEPENDENCIES
@@ -252,15 +254,12 @@ class SyncManagerS {
 
 ```
 
-
-
-
-
-
 ### Server
 
 On the server, you need to define two things:
+
 - RLS rules such as this:
+
 ```sql
 alter policy "doc_updates_rls"
 on "public"."doc_updates"
@@ -279,18 +278,19 @@ In Supabase, these rules are respected inside database functions, so simplify th
     - uses [helper functions](server/db_functions/push_changes_helpers.sql)
   - [pull_changes](server/db_functions/pull_changes.sql)
 
-
 You can copy and paste them into your project if you synchronize data for just one user. The implementation is generic and utilizes RLS rules.
 
-
 ## Extra Attributes
+
 Tables require special timestamp attributes for tracking changes:
 **Client-side timestamp attributes:**
+
 - created_at: Records when a record was created on the client
 - updated_at: Records when a record was updated on the client
 - deleted_at: Records when a record was deleted on the client
 
 **Server-side timestamp attributes:**
+
 - server_created_at: Records when a record was created on the server
 - server_updated_at: Records when a record was updated on the server
 - deleted_at: Records when a record was deleted on the server
@@ -299,7 +299,7 @@ An optional instance_id attribute enables more efficient filtering of real-time 
 
 ### Creating, Updating, Deleting on the Client
 
-Whenever you create, update, delete and a you are assigning a new timestamp it is crucial to use: 
+Whenever you create, update, delete and a you are assigning a new timestamp it is crucial to use:
 `DateTime.now().toUtc()` (it must be converted into a UTC timezone) and also to set `isRemote = false` . For example:
 
 ```dart
@@ -309,16 +309,19 @@ value.copyWith(
         updatedAt: DateTime.now().toUtc(),
       );
 ```
+
 ## Run this demo
 
 On Supabase create a project and do these steps:
+
 - Insert tables with RLS from `generate_db.sql`
 - Add database functions from:
-    - `pull_changes.sql`
-    - `push_changes_helpers.sql`
-    - `push_changes.sql`
+  - `pull_changes.sql`
+  - `push_changes_helpers.sql`
+  - `push_changes.sql`
 
 Add to the project .env file with:
+
 ```
 SUPABASE_URL=https://xxxxsupabase.co
 SUPABASE_ANON_KEY=xxxxxx
@@ -328,5 +331,20 @@ SUPABASE_STORAGE_BUCKET=xxxx //Not used, but still provide it
 Run the project :)
 
 ## Possible Extension for Multi-user use case
+
 There is a problem that when the user can gain access or lose access to some resources, this timestamped synchronization would need extra tracking for changes that would require a complete resync.
-This is not achieved in this project, but it would also be likely possible. 
+This is not achieved in this project, but it would also be likely possible.
+
+## Important note about deletes
+
+This was not extensively tested, but currently it assumens that you have reference constraint in a local DB, so that when you have local objects (not yet synced) that are are related to something that got deleted remotedly. It would be because of contrints deleted and so it would be correctly deleted as well.
+
+I encourage you to experiment with it and when neccessary for example change the behaviour of deletes (though cloning the generator package) and return yourself list of things that had changed in the `sync()` function and do some pos-processing to update your database accordingly.
+
+## Important Files
+
+Here are list other of important files and folders:
+
+- `lib/db/database.dart` - Specifies tables with extra attributes such as: updated_at, deleted_at,.... and needed anotation
+- `lib/sync/sync_manager.dart` - Contains a SyncClass that contains methods generted by code-generation. And handles the actual synchronization.
+- `server/db_functions` - Contains generic implementation of pull and push functions from WatermelonDB protocol. They are quite hard to wrap your head around, but there shouldn't be a need to touch them anyway.
