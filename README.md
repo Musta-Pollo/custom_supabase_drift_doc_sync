@@ -330,17 +330,3 @@ Run the project :)
 ## Possible Extension for Multi-user use case
 There is a problem that when the user can gain access or lose access to some resources, this timestamped synchronization would need extra tracking for changes that would require a complete resync.
 This is not achieved in this project, but it would also be likely possible. 
-
-## Important note about deletes
-
-This was not extensively tested, but currently it assumens that you have reference constraint in a local DB, so that when you have local objects (not yet synced) that are are related to something that got deleted remotedly. It would be because of contrints deleted and so it would be correctly deleted as well. 
-
-I encourage you to experiment with it and when neccessary for example change the behaviour of deletes (though cloning the generator package) and return yourself list of things that had changed in the `sync()` function and do some pos-processing to update your database accordingly. 
-
-## Important Files
-
-Here are list other of important files and folders:
-
-- `lib/db/database.dart` - Specifies tables with extra attributes such as: updated_at, deleted_at,.... and needed anotation
-- `lib/sync/sync_manager.dart` - Contains a SyncClass that contains methods generted by code-generation. And handles the actual synchronization.
-- `server/db_functions` - Contains generic implementation of pull and push functions from WatermelonDB protocol. They are quite hard to wrap your head around, but there shouldn't be a need to touch them anyway.
